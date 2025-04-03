@@ -12,7 +12,21 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, MessageCircle } from "lucide-react";
+import { 
+  Search, 
+  Filter, 
+  Plus, 
+  MessageCircle, 
+  Users, 
+  Send, 
+  PaperclipIcon, 
+  Smile, 
+  Clock, 
+  Mic,
+  Download,
+  BookText
+} from "lucide-react";
+import ConversationPanel from "@/components/conversation/ConversationPanel";
 
 // Dados de exemplo para atendimentos
 const atendimentosAbertos = [
@@ -112,8 +126,8 @@ const atendimentosFechados = [
   },
 ];
 
-// Componente para exibir um atendimento
-const AtendimentoCard = ({ atendimento }: { atendimento: any }) => {
+// Componente para exibir um atendimento na lista
+const AtendimentoItem = ({ atendimento, isSelected, onClick }: { atendimento: any, isSelected: boolean, onClick: () => void }) => {
   const getCanalColor = (canal: string) => {
     switch (canal) {
       case "whatsapp":
@@ -145,8 +159,11 @@ const AtendimentoCard = ({ atendimento }: { atendimento: any }) => {
   };
 
   return (
-    <Card className="p-4 mb-4 cursor-pointer hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-2">
+    <div 
+      onClick={onClick}
+      className={`p-3 mb-2 border rounded-lg cursor-pointer hover:shadow-md transition-all ${isSelected ? "border-brand-600 bg-brand-50" : "border-gray-200"}`}
+    >
+      <div className="flex justify-between items-start mb-1">
         <div className="flex items-center">
           <span className="font-medium text-brand-800">{atendimento.id}</span>
           <span className="mx-2 text-gray-400">•</span>
@@ -154,37 +171,51 @@ const AtendimentoCard = ({ atendimento }: { atendimento: any }) => {
             {atendimento.canal}
           </Badge>
         </div>
-        <div className="text-xs text-gray-500">{atendimento.horario}</div>
+        <div className="flex items-center text-xs text-gray-500">
+          <Clock className="h-3 w-3 mr-1" />
+          {atendimento.horario}
+        </div>
       </div>
 
-      <div className="mb-2">
+      <div className="mb-1">
         <h3 className="text-md font-semibold">{atendimento.cliente}</h3>
-        <p className="text-sm text-gray-600">{atendimento.telefone}</p>
+        <p className="text-sm text-gray-600 truncate">{atendimento.telefone}</p>
       </div>
 
-      <div className="mb-2">
-        <p className="text-sm font-medium">{atendimento.assunto}</p>
+      <div className="mb-1">
         <p className="text-sm text-gray-600 truncate">{atendimento.ultimaMensagem}</p>
       </div>
 
-      <div className="flex justify-between items-center mt-3">
+      <div className="flex justify-between items-center mt-2">
         <Badge className={getPrioridadeColor(atendimento.prioridade)}>
           {atendimento.prioridade}
         </Badge>
-        <div className="text-xs text-gray-500">
-          Atendente: {atendimento.atendente}
+        <div className="text-xs text-gray-500 flex items-center">
+          <Users className="h-3 w-3 mr-1" />
+          {atendimento.atendente}
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
 const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAtendimento, setSelectedAtendimento] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("abertos");
+
+  const handleAtendimentoClick = (atendimento: any) => {
+    setSelectedAtendimento(atendimento);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSelectedAtendimento(null);
+  };
 
   return (
-    <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="h-[calc(100vh-10rem)] flex flex-col">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Atendimentos</h1>
           <p className="text-muted-foreground">
@@ -197,7 +228,7 @@ const Atendimentos = () => {
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mt-6 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -228,51 +259,87 @@ const Atendimentos = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="abertos" className="w-full">
-        <TabsList className="mb-6 grid w-full grid-cols-3">
-          <TabsTrigger value="abertos" className="flex items-center">
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Abertos <Badge className="ml-2 bg-brand-100 text-brand-800">{atendimentosAbertos.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="pendentes">
-            Pendentes <Badge className="ml-2 bg-orange-100 text-orange-800">{atendimentosPendentes.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="fechados">
-            Fechados <Badge className="ml-2 bg-gray-100 text-gray-800">{atendimentosFechados.length}</Badge>
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        {/* Lista de atendimentos (Coluna Esquerda) */}
+        <div className="w-full md:w-1/3 overflow-hidden flex flex-col">
+          <Tabs 
+            defaultValue="abertos" 
+            className="w-full" 
+            value={activeTab}
+            onValueChange={handleTabChange}
+          >
+            <TabsList className="mb-4 grid w-full grid-cols-3">
+              <TabsTrigger value="abertos" className="flex items-center">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Ativos <Badge className="ml-2 bg-brand-100 text-brand-800">{atendimentosAbertos.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pendentes">
+                Pendentes <Badge className="ml-2 bg-orange-100 text-orange-800">{atendimentosPendentes.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="fechados">
+                Fechados <Badge className="ml-2 bg-gray-100 text-gray-800">{atendimentosFechados.length}</Badge>
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="abertos">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {atendimentosAbertos.map((atendimento) => (
-              <AtendimentoCard key={atendimento.id} atendimento={atendimento} />
-            ))}
-          </div>
-        </TabsContent>
+            <div className="overflow-y-auto flex-1 h-[calc(100vh-22rem)]">
+              <TabsContent value="abertos" className="mt-0 h-full">
+                <div className="space-y-2">
+                  {atendimentosAbertos.map((atendimento) => (
+                    <AtendimentoItem 
+                      key={atendimento.id} 
+                      atendimento={atendimento} 
+                      isSelected={selectedAtendimento?.id === atendimento.id}
+                      onClick={() => handleAtendimentoClick(atendimento)} 
+                    />
+                  ))}
+                </div>
+              </TabsContent>
 
-        <TabsContent value="pendentes">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {atendimentosPendentes.length > 0 ? (
-              atendimentosPendentes.map((atendimento) => (
-                <AtendimentoCard key={atendimento.id} atendimento={atendimento} />
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-12">
-                <p className="text-muted-foreground">Não há atendimentos pendentes</p>
-              </div>
-            )}
-          </div>
-        </TabsContent>
+              <TabsContent value="pendentes" className="mt-0 h-full">
+                <div className="space-y-2">
+                  {atendimentosPendentes.map((atendimento) => (
+                    <AtendimentoItem 
+                      key={atendimento.id} 
+                      atendimento={atendimento} 
+                      isSelected={selectedAtendimento?.id === atendimento.id}
+                      onClick={() => handleAtendimentoClick(atendimento)} 
+                    />
+                  ))}
+                </div>
+              </TabsContent>
 
-        <TabsContent value="fechados">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {atendimentosFechados.map((atendimento) => (
-              <AtendimentoCard key={atendimento.id} atendimento={atendimento} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-    </>
+              <TabsContent value="fechados" className="mt-0 h-full">
+                <div className="space-y-2">
+                  {atendimentosFechados.map((atendimento) => (
+                    <AtendimentoItem 
+                      key={atendimento.id} 
+                      atendimento={atendimento} 
+                      isSelected={selectedAtendimento?.id === atendimento.id}
+                      onClick={() => handleAtendimentoClick(atendimento)} 
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+
+        {/* Painel de conversação (Coluna Direita) */}
+        <div className="hidden md:block md:w-2/3 bg-white rounded-lg border border-gray-200 overflow-hidden">
+          {selectedAtendimento ? (
+            <ConversationPanel 
+              atendimento={selectedAtendimento} 
+              onClose={() => setSelectedAtendimento(null)}
+            />
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-gray-500">
+              <MessageCircle className="h-16 w-16 mb-4 text-gray-300" />
+              <p className="text-lg">Selecione um atendimento para visualizar a conversa</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

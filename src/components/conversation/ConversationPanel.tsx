@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import {
 interface ConversationPanelProps {
   atendimento: any;
   onClose: () => void;
+  onStatusChange?: (id: string, newStatus: string) => void;
+  isClosed?: boolean;
 }
 
 // Dados de exemplo para mensagens
@@ -93,9 +95,24 @@ const exampleMessages = [
   },
 ];
 
-const ConversationPanel = ({ atendimento, onClose }: ConversationPanelProps) => {
+const ConversationPanel = ({ 
+  atendimento, 
+  onClose, 
+  onStatusChange,
+  isClosed = false 
+}: ConversationPanelProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState(exampleMessages);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
@@ -109,6 +126,12 @@ const ConversationPanel = ({ atendimento, onClose }: ConversationPanelProps) => 
       
       setMessages([...messages, newMsg]);
       setNewMessage("");
+    }
+  };
+
+  const handleStatusChange = () => {
+    if (onStatusChange) {
+      onStatusChange(atendimento.id, isClosed ? "active" : "closed");
     }
   };
 
@@ -154,9 +177,23 @@ const ConversationPanel = ({ atendimento, onClose }: ConversationPanelProps) => 
             <UserPlus className="h-4 w-4 mr-2" />
             Transferir
           </Button>
-          <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
-            <X className="h-4 w-4 mr-2" />
-            Fechar
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className={isClosed ? "text-green-600 border-green-200 hover:bg-green-50" : "text-red-600 border-red-200 hover:bg-red-50"}
+            onClick={handleStatusChange}
+          >
+            {isClosed ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reabrir
+              </>
+            ) : (
+              <>
+                <X className="h-4 w-4 mr-2" />
+                Fechar
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -231,6 +268,7 @@ const ConversationPanel = ({ atendimento, onClose }: ConversationPanelProps) => 
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} /> {/* Empty div for scrolling to bottom */}
         </div>
       </div>
 

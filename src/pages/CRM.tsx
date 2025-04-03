@@ -27,7 +27,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, Phone, MessageSquare, Mail } from "lucide-react";
+import { 
+  Search, 
+  Filter, 
+  Plus, 
+  MoreHorizontal, 
+  Edit, 
+  Trash2, 
+  Phone, 
+  MessageSquare, 
+  Mail,
+  MoreVertical 
+} from "lucide-react";
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from "@/components/ui/resizable";
 
 // Dados de exemplo para leads
 const leadsData = [
@@ -114,8 +130,10 @@ const CRM = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [origemFilter, setOrigemFilter] = useState("todas");
+  const [viewMode, setViewMode] = useState<"tabela" | "kanban">("kanban");
+  const [leads, setLeads] = useState(leadsData);
 
-  const filteredLeads = leadsData.filter((lead) => {
+  const filteredLeads = leads.filter((lead) => {
     const matchesSearch = 
       lead.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -159,66 +177,114 @@ const CRM = () => {
     }
   };
 
-  return (
-    <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">CRM</h1>
-          <p className="text-muted-foreground">
-            Gestão de leads e oportunidades
-          </p>
-        </div>
-        <Button className="bg-brand-600 hover:bg-brand-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Lead
-        </Button>
-      </div>
+  const handleDragStart = (e: React.DragEvent, lead: any) => {
+    e.dataTransfer.setData("leadId", lead.id);
+  };
 
-      <div className="flex flex-col md:flex-row gap-4 mt-6 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por nome, email ou telefone..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="Novo">Novo</SelectItem>
-              <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-              <SelectItem value="Qualificado">Qualificado</SelectItem>
-              <SelectItem value="Convertido">Convertido</SelectItem>
-              <SelectItem value="Perdido">Perdido</SelectItem>
-            </SelectContent>
-          </Select>
+  const handleDrop = (e: React.DragEvent, newStatus: string) => {
+    e.preventDefault();
+    const leadId = e.dataTransfer.getData("leadId");
+    
+    setLeads(leads.map(lead => 
+      lead.id === leadId ? { ...lead, status: newStatus } : lead
+    ));
+  };
 
-          <Select value={origemFilter} onValueChange={setOrigemFilter}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Origem" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as origens</SelectItem>
-              <SelectItem value="Site">Site</SelectItem>
-              <SelectItem value="Facebook">Facebook</SelectItem>
-              <SelectItem value="Instagram">Instagram</SelectItem>
-              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-            </SelectContent>
-          </Select>
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
-          <Button variant="outline" className="flex items-center">
-            <Filter className="h-4 w-4 mr-2" />
-            Mais Filtros
-          </Button>
-        </div>
-      </div>
+  const getLeadsByStatus = (status: string) => {
+    return filteredLeads.filter(lead => lead.status === status);
+  };
 
+  const renderKanbanView = () => {
+    const statuses = ["Novo", "Em Andamento", "Qualificado", "Convertido", "Perdido"];
+    
+    return (
+      <ResizablePanelGroup direction="horizontal" className="min-h-[500px] rounded-lg border">
+        {statuses.map((status, index) => (
+          <>
+            <ResizablePanel key={status} defaultSize={20} minSize={15}>
+              <div 
+                className="h-full p-4 bg-gray-50 flex flex-col"
+                onDrop={(e) => handleDrop(e, status)}
+                onDragOver={handleDragOver}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-sm uppercase tracking-wide text-gray-700">{status}</h3>
+                  <Badge className={`${getStatusColor(status)}`}>
+                    {getLeadsByStatus(status).length}
+                  </Badge>
+                </div>
+                <div className="space-y-3 flex-1 overflow-y-auto">
+                  {getLeadsByStatus(status).map((lead) => (
+                    <Card 
+                      key={lead.id}
+                      className="p-3 cursor-move shadow-sm hover:shadow-md transition-shadow"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead)}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-sm">{lead.nome}</h4>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 w-7">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="text-xs text-gray-500 mb-1">{lead.email}</div>
+                      <div className="text-xs text-gray-500 mb-2">{lead.telefone}</div>
+                      <div className="flex justify-between items-center">
+                        <Badge className={`${getOrigemColor(lead.origem)} text-xs`}>
+                          {lead.origem}
+                        </Badge>
+                        <div className="text-xs text-gray-500">{lead.dataContato}</div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t flex justify-between">
+                        <div className="text-xs text-gray-500">
+                          Atribuído: {lead.atribuido}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <Phone className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MessageSquare className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <Mail className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </ResizablePanel>
+            {index < statuses.length - 1 && (
+              <ResizableHandle withHandle />
+            )}
+          </>
+        ))}
+      </ResizablePanelGroup>
+    );
+  };
+
+  const renderTableView = () => {
+    return (
       <Card className="mt-4">
         <Table>
           <TableHeader>
@@ -293,6 +359,88 @@ const CRM = () => {
           </TableBody>
         </Table>
       </Card>
+    );
+  };
+
+  return (
+    <>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">CRM</h1>
+          <p className="text-muted-foreground">
+            Gestão de leads e oportunidades
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <div className="border rounded-md overflow-hidden flex">
+            <Button 
+              variant={viewMode === "tabela" ? "default" : "ghost"}
+              className={`rounded-none ${viewMode === "tabela" ? "bg-brand-600 hover:bg-brand-700" : ""}`}
+              onClick={() => setViewMode("tabela")}
+            >
+              Tabela
+            </Button>
+            <Button 
+              variant={viewMode === "kanban" ? "default" : "ghost"}
+              className={`rounded-none ${viewMode === "kanban" ? "bg-brand-600 hover:bg-brand-700" : ""}`}
+              onClick={() => setViewMode("kanban")}
+            >
+              Kanban
+            </Button>
+          </div>
+          <Button className="bg-brand-600 hover:bg-brand-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Lead
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 mt-6 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Buscar por nome, email ou telefone..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              <SelectItem value="Novo">Novo</SelectItem>
+              <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+              <SelectItem value="Qualificado">Qualificado</SelectItem>
+              <SelectItem value="Convertido">Convertido</SelectItem>
+              <SelectItem value="Perdido">Perdido</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={origemFilter} onValueChange={setOrigemFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as origens</SelectItem>
+              <SelectItem value="Site">Site</SelectItem>
+              <SelectItem value="Facebook">Facebook</SelectItem>
+              <SelectItem value="Instagram">Instagram</SelectItem>
+              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" className="flex items-center">
+            <Filter className="h-4 w-4 mr-2" />
+            Mais Filtros
+          </Button>
+        </div>
+      </div>
+
+      {viewMode === "tabela" ? renderTableView() : renderKanbanView()}
     </>
   );
 };

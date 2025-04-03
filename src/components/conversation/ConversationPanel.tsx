@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   BookText
 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface ConversationPanelProps {
   atendimento: any;
@@ -126,6 +127,9 @@ const ConversationPanel = ({
       
       setMessages([...messages, newMsg]);
       setNewMessage("");
+      
+      // Ensure the messages container scrolls to the newest message
+      setTimeout(scrollToBottom, 100);
     }
   };
 
@@ -133,6 +137,20 @@ const ConversationPanel = ({
     if (onStatusChange) {
       onStatusChange(atendimento.id, isClosed ? "active" : "closed");
     }
+  };
+
+  const handleTransferToDepartment = () => {
+    toast({
+      title: "Atendimento transferido",
+      description: `O atendimento foi transferido para outro departamento.`,
+    });
+  };
+
+  const handleTransferToAgent = () => {
+    toast({
+      title: "Atendimento transferido",
+      description: `O atendimento foi transferido para outro atendente.`,
+    });
   };
 
   const getCanalIcon = (canal: string) => {
@@ -169,11 +187,21 @@ const ConversationPanel = ({
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="text-brand-600">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-brand-600"
+            onClick={handleTransferToDepartment}
+          >
             <Users className="h-4 w-4 mr-2" />
             Departamento
           </Button>
-          <Button variant="outline" size="sm" className="text-brand-600">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-brand-600"
+            onClick={handleTransferToAgent}
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Transferir
           </Button>
@@ -293,6 +321,7 @@ const ConversationPanel = ({
                   handleSendMessage();
                 }
               }}
+              disabled={isClosed}
             />
             <div className="absolute bottom-2 right-2 flex space-x-1">
               <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 text-gray-500">
@@ -301,10 +330,10 @@ const ConversationPanel = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" className="rounded-full text-gray-500">
+            <Button variant="ghost" size="icon" className="rounded-full text-gray-500" disabled={isClosed}>
               <Paperclip className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="rounded-full text-gray-500">
+            <Button variant="ghost" size="icon" className="rounded-full text-gray-500" disabled={isClosed}>
               <Mic className="h-5 w-5" />
             </Button>
             <Button 
@@ -312,6 +341,7 @@ const ConversationPanel = ({
               size="icon" 
               className="rounded-full bg-brand-600 hover:bg-brand-700"
               onClick={handleSendMessage}
+              disabled={isClosed}
             >
               <Send className="h-4 w-4" />
             </Button>

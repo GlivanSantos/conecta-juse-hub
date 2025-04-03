@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
 
 // Dados de exemplo para agentes de IA
 const agentesData = [
@@ -67,11 +68,74 @@ const agentesData = [
 const Agentes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
+  const [openTestDialog, setOpenTestDialog] = useState(false);
+  const [openTrainDialog, setOpenTrainDialog] = useState(false);
+  const [openSettingsDialog, setOpenSettingsDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [agents, setAgents] = useState(agentesData);
+  const [testMessage, setTestMessage] = useState("");
+  const [testResponse, setTestResponse] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   
-  const filteredAgentes = agentesData.filter((agente) =>
+  const filteredAgentes = agents.filter((agente) =>
     agente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agente.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteAgent = () => {
+    if (selectedAgent) {
+      const updatedAgents = agents.filter(agent => agent.id !== selectedAgent.id);
+      setAgents(updatedAgents);
+      toast({
+        title: "Agente excluído",
+        description: `O agente ${selectedAgent.nome} foi excluído com sucesso.`,
+      });
+      setOpenDeleteDialog(false);
+      setSelectedAgent(null);
+    }
+  };
+
+  const handleTestAgent = () => {
+    if (!testMessage.trim()) {
+      toast({
+        title: "Mensagem vazia",
+        description: "Por favor, digite uma mensagem para testar o agente.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    // Simulando tempo de processamento
+    setTimeout(() => {
+      const responses = [
+        "Olá, sou o assistente virtual e estou aqui para ajudar! Como posso auxiliar com sua solicitação?",
+        `Entendi sua pergunta sobre "${testMessage}". Baseado nas informações disponíveis, posso oferecer as seguintes opções...`,
+        "Vou verificar essa informação para você. Baseado nos nossos registros, posso confirmar que...",
+        "Agradeço seu contato! Para responder adequadamente, precisarei de algumas informações adicionais."
+      ];
+      
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      setTestResponse(randomResponse);
+      setIsProcessing(false);
+    }, 1500);
+  };
+
+  const handleTrainAgent = () => {
+    setIsProcessing(true);
+    
+    // Simulando tempo de processamento
+    setTimeout(() => {
+      toast({
+        title: "Treinamento concluído",
+        description: `O agente ${selectedAgent?.nome} foi treinado com sucesso.`,
+      });
+      setIsProcessing(false);
+      setOpenTrainDialog(false);
+    }, 2000);
+  };
 
   return (
     <>
@@ -186,7 +250,16 @@ const Agentes = () => {
               <Button variant="outline" onClick={() => setOpenDialog(false)}>
                 Cancelar
               </Button>
-              <Button onClick={() => setOpenDialog(false)} className="bg-brand-600 hover:bg-brand-700">
+              <Button 
+                onClick={() => {
+                  setOpenDialog(false);
+                  toast({
+                    title: "Agente criado",
+                    description: "Seu agente foi criado com sucesso.",
+                  });
+                }} 
+                className="bg-brand-600 hover:bg-brand-700"
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Salvar
               </Button>
@@ -249,20 +322,52 @@ const Agentes = () => {
               
               <div className="flex justify-between mt-6">
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center"
+                    onClick={() => {
+                      setSelectedAgent(agente);
+                      setOpenTestDialog(true);
+                    }}
+                  >
                     <MessageSquare className="h-4 w-4 mr-1" />
                     Testar
                   </Button>
-                  <Button size="sm" variant="outline" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center"
+                    onClick={() => {
+                      setSelectedAgent(agente);
+                      setOpenTrainDialog(true);
+                    }}
+                  >
                     <Brain className="h-4 w-4 mr-1" />
                     Treinar
                   </Button>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" className="flex items-center text-gray-500 hover:text-gray-700">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="flex items-center text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      setSelectedAgent(agente);
+                      setOpenSettingsDialog(true);
+                    }}
+                  >
                     <Settings className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="flex items-center text-gray-500 hover:text-red-600">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="flex items-center text-gray-500 hover:text-red-600"
+                    onClick={() => {
+                      setSelectedAgent(agente);
+                      setOpenDeleteDialog(true);
+                    }}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -284,6 +389,215 @@ const Agentes = () => {
           </div>
         </Card>
       </div>
+
+      {/* Test Dialog */}
+      <Dialog open={openTestDialog} onOpenChange={setOpenTestDialog}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Testar Agente: {selectedAgent?.nome}</DialogTitle>
+            <DialogDescription>
+              Envie uma mensagem para testar como o agente irá responder.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-gray-50 p-4 rounded-lg max-h-48 overflow-y-auto">
+              {testResponse && (
+                <div className="flex flex-col">
+                  <div className="self-end mb-2 p-3 rounded-lg bg-brand-600 text-white max-w-[80%]">
+                    <p className="text-sm">{testMessage}</p>
+                    <p className="text-xs text-right mt-1 text-brand-100">Você</p>
+                  </div>
+                  <div className="self-start p-3 rounded-lg bg-white border border-gray-200 max-w-[80%]">
+                    <p className="text-sm">{testResponse}</p>
+                    <p className="text-xs text-right mt-1 text-gray-500">{selectedAgent?.nome}</p>
+                  </div>
+                </div>
+              )}
+              {!testResponse && !isProcessing && (
+                <div className="text-center text-sm text-gray-500 py-2">
+                  Envie uma mensagem para iniciar o teste
+                </div>
+              )}
+              {isProcessing && (
+                <div className="flex items-center justify-center">
+                  <div className="animate-pulse flex space-x-1">
+                    <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                    <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                    <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Digite sua mensagem..." 
+                value={testMessage}
+                onChange={(e) => setTestMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleTestAgent();
+                  }
+                }}
+              />
+              <Button onClick={handleTestAgent} disabled={isProcessing}>
+                Enviar
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setOpenTestDialog(false);
+              setTestMessage("");
+              setTestResponse("");
+            }}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Train Dialog */}
+      <Dialog open={openTrainDialog} onOpenChange={setOpenTrainDialog}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Treinar Agente: {selectedAgent?.nome}</DialogTitle>
+            <DialogDescription>
+              Adicione novos dados para melhorar o desempenho do agente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Fonte de dados</Label>
+              <Select defaultValue="knowledge">
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a fonte de dados" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="knowledge">Base de conhecimento</SelectItem>
+                  <SelectItem value="web">Conteúdo da web</SelectItem>
+                  <SelectItem value="conversations">Conversas anteriores</SelectItem>
+                  <SelectItem value="documents">Documentos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Conteúdo para treinamento</Label>
+              <Textarea 
+                placeholder="Cole aqui o texto ou dados para treinamento..." 
+                className="h-32"
+              />
+            </div>
+            {isProcessing && (
+              <div className="bg-brand-50 p-3 rounded-lg flex items-center">
+                <div className="animate-spin h-4 w-4 border-2 border-brand-600 border-t-transparent rounded-full mr-2"></div>
+                <span className="text-sm text-brand-600">Processando treinamento...</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenTrainDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleTrainAgent} 
+              disabled={isProcessing}
+              className="bg-brand-600 hover:bg-brand-700"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              Iniciar Treinamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={openSettingsDialog} onOpenChange={setOpenSettingsDialog}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Configurações: {selectedAgent?.nome}</DialogTitle>
+            <DialogDescription>
+              Personalize o comportamento e as capacidades do agente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="agent-name" className="text-right">Nome</Label>
+              <Input id="agent-name" defaultValue={selectedAgent?.nome} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="agent-model" className="text-right">Modelo</Label>
+              <Select defaultValue={selectedAgent?.modelo.toLowerCase()}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt4">GPT-4</SelectItem>
+                  <SelectItem value="gpt35">GPT-3.5</SelectItem>
+                  <SelectItem value="claude">Claude</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="agent-creativity" className="text-right">Criatividade</Label>
+              <div className="col-span-3">
+                <Slider defaultValue={[70]} max={100} step={1} />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="agent-status" className="text-right">Status</Label>
+              <div className="flex items-center space-x-2 col-span-3">
+                <Switch id="agent-status" defaultChecked={selectedAgent?.status === "Ativo"} />
+                <Label htmlFor="agent-status">
+                  {selectedAgent?.status === "Ativo" ? "Ativo" : "Inativo"}
+                </Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenSettingsDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => {
+                toast({
+                  title: "Configurações salvas",
+                  description: `As configurações do agente ${selectedAgent?.nome} foram atualizadas.`,
+                });
+                setOpenSettingsDialog(false);
+              }} 
+              className="bg-brand-600 hover:bg-brand-700"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir o agente "{selectedAgent?.nome}"? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setOpenDeleteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAgent}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="mt-12">
         <Tabs defaultValue="overview">

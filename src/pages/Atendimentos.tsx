@@ -27,6 +27,7 @@ import {
   BookText
 } from "lucide-react";
 import ConversationPanel from "@/components/conversation/ConversationPanel";
+import { toast } from "@/hooks/use-toast";
 
 // Dados de exemplo para atendimentos
 const atendimentosAbertos = [
@@ -203,6 +204,10 @@ const Atendimentos = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAtendimento, setSelectedAtendimento] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("abertos");
+  
+  const [listaAbertos, setListaAbertos] = useState(atendimentosAbertos);
+  const [listaPendentes, setListaPendentes] = useState(atendimentosPendentes);
+  const [listaFechados, setListaFechados] = useState(atendimentosFechados);
 
   const handleAtendimentoClick = (atendimento: any) => {
     setSelectedAtendimento(atendimento);
@@ -211,6 +216,64 @@ const Atendimentos = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setSelectedAtendimento(null);
+  };
+
+  const handleStatusChange = (id: string, newStatus: string) => {
+    if (newStatus === "closed") {
+      // Movendo para Fechados
+      if (activeTab === "abertos") {
+        const atendimento = listaAbertos.find(a => a.id === id);
+        if (atendimento) {
+          setListaAbertos(listaAbertos.filter(a => a.id !== id));
+          setListaFechados([atendimento, ...listaFechados]);
+          toast({
+            title: "Atendimento fechado",
+            description: `O atendimento ${id} foi movido para Fechados.`
+          });
+        }
+      } else if (activeTab === "pendentes") {
+        const atendimento = listaPendentes.find(a => a.id === id);
+        if (atendimento) {
+          setListaPendentes(listaPendentes.filter(a => a.id !== id));
+          setListaFechados([atendimento, ...listaFechados]);
+          toast({
+            title: "Atendimento fechado",
+            description: `O atendimento ${id} foi movido para Fechados.`
+          });
+        }
+      }
+      setSelectedAtendimento(null);
+    } else if (newStatus === "active") {
+      // Reabrindo - movendo para Ativos
+      const atendimento = listaFechados.find(a => a.id === id);
+      if (atendimento) {
+        setListaFechados(listaFechados.filter(a => a.id !== id));
+        setListaAbertos([atendimento, ...listaAbertos]);
+        toast({
+          title: "Atendimento reaberto",
+          description: `O atendimento ${id} foi movido para Ativos.`
+        });
+      }
+      setSelectedAtendimento(null);
+    }
+  };
+
+  const handleTransferToAgent = () => {
+    if (selectedAtendimento) {
+      toast({
+        title: "Atendimento transferido",
+        description: `O atendimento foi transferido para outro atendente.`
+      });
+    }
+  };
+
+  const handleTransferToDepartment = () => {
+    if (selectedAtendimento) {
+      toast({
+        title: "Atendimento transferido",
+        description: `O atendimento foi transferido para outro departamento.`
+      });
+    }
   };
 
   return (
@@ -271,20 +334,20 @@ const Atendimentos = () => {
             <TabsList className="mb-4 grid w-full grid-cols-3">
               <TabsTrigger value="abertos" className="flex items-center">
                 <MessageCircle className="h-4 w-4 mr-2" />
-                Ativos <Badge className="ml-2 bg-brand-100 text-brand-800">{atendimentosAbertos.length}</Badge>
+                Ativos <Badge className="ml-2 bg-brand-100 text-brand-800">{listaAbertos.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="pendentes">
-                Pendentes <Badge className="ml-2 bg-orange-100 text-orange-800">{atendimentosPendentes.length}</Badge>
+                Pendentes <Badge className="ml-2 bg-orange-100 text-orange-800">{listaPendentes.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="fechados">
-                Fechados <Badge className="ml-2 bg-gray-100 text-gray-800">{atendimentosFechados.length}</Badge>
+                Fechados <Badge className="ml-2 bg-gray-100 text-gray-800">{listaFechados.length}</Badge>
               </TabsTrigger>
             </TabsList>
 
             <div className="overflow-y-auto flex-1 h-[calc(100vh-22rem)]">
               <TabsContent value="abertos" className="mt-0 h-full">
                 <div className="space-y-2">
-                  {atendimentosAbertos.map((atendimento) => (
+                  {listaAbertos.map((atendimento) => (
                     <AtendimentoItem 
                       key={atendimento.id} 
                       atendimento={atendimento} 
@@ -297,7 +360,7 @@ const Atendimentos = () => {
 
               <TabsContent value="pendentes" className="mt-0 h-full">
                 <div className="space-y-2">
-                  {atendimentosPendentes.map((atendimento) => (
+                  {listaPendentes.map((atendimento) => (
                     <AtendimentoItem 
                       key={atendimento.id} 
                       atendimento={atendimento} 
@@ -310,7 +373,7 @@ const Atendimentos = () => {
 
               <TabsContent value="fechados" className="mt-0 h-full">
                 <div className="space-y-2">
-                  {atendimentosFechados.map((atendimento) => (
+                  {listaFechados.map((atendimento) => (
                     <AtendimentoItem 
                       key={atendimento.id} 
                       atendimento={atendimento} 
@@ -330,6 +393,8 @@ const Atendimentos = () => {
             <ConversationPanel 
               atendimento={selectedAtendimento} 
               onClose={() => setSelectedAtendimento(null)}
+              onStatusChange={handleStatusChange}
+              isClosed={activeTab === "fechados"}
             />
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-500">
